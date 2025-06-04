@@ -92,6 +92,12 @@ def get_logged_urls():
     return urls
 
 
+def scroll_down():
+    pyautogui.moveTo(1000, 800)
+    pyautogui.scroll(-500)
+    time.sleep(0.5)
+
+
 def calibrate_y_start():
     print("Calibration mode. Hover each song row and press Enter to print its Y position. Press Ctrl+C to stop.")
     try:
@@ -112,6 +118,10 @@ def main():
     tracks = get_all_tracks(PLAYLIST_ID)
 
     for idx, item in enumerate(tracks):
+        if idx > 0 and idx % 10 == 0:
+            print("🔻 Scrolling down")
+            scroll_down()
+
         track = item['track']
         url = track['external_urls']['spotify']
         if url in logged_urls:
