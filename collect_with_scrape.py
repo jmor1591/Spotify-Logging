@@ -26,12 +26,6 @@ ROW_HEIGHT = 69.7804878  # height between tracks in pixels
 SCROLL_DELAY = 1.0
 SCROLL_AMOUNT = -750  # full page scroll amount
 
-# Define thresholds for dark and light pixels
-# RGB values below this are considered dark
-DARK_PIXEL_THRESHOLD = (70, 70, 70)
-# RGB values above this are considered light
-LIGHT_PIXEL_THRESHOLD = (100, 100, 100)
-TOLERANCE = 10  # Allowable color variation
 # ========== INIT CLIENTS ==========
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     client_id=SPOTIFY_CLIENT_ID,
