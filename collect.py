@@ -22,9 +22,16 @@ SCOPE = os.getenv('SCOPE').split(',')
 GOOGLE_SHEET_NAME = os.getenv('GOOGLE_SHEET_NAME')
 
 CREDENTIALS_FILE = 'creds.json'
+ROW_HEIGHT = 69.7804878  # height between tracks in pixels
+SCROLL_DELAY = 1.0
+SCROLL_AMOUNT = -750  # full page scroll amount
 
-ROW_HEIGHT = 70  # height between tracks in pixels
-
+# Define thresholds for dark and light pixels
+# RGB values below this are considered dark
+DARK_PIXEL_THRESHOLD = (70, 70, 70)
+# RGB values above this are considered light
+LIGHT_PIXEL_THRESHOLD = (100, 100, 100)
+TOLERANCE = 10  # Allowable color variation
 # ========== INIT CLIENTS ==========
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     client_id=SPOTIFY_CLIENT_ID,
@@ -59,6 +66,8 @@ def ask_for_anchor():
     input("Press Enter when ready...")
     x, y = pyautogui.position()
     print(f"🎯 Anchor set at: ({x}, {y})")
+    print("Starting in 2 seconds, go to the Spotify UI Added By column NOW!!!!")
+    time.sleep(2)
     return x, y
 
 
@@ -66,17 +75,22 @@ def scrape_added_by(index, anchor_x, anchor_y):
     y_offset = anchor_y + index * ROW_HEIGHT
     print(f"Scraping 'Added by' at Y: {y_offset}")
     pyautogui.moveTo(anchor_x, y_offset)
+    pyautogui.rightClick()
+    time.sleep(1)  # Move back to 0.2
+
+    # TODO: Get the scroll down to be after every right click and click sequence instead of after x songs.
+    # Also, get it to click twice, once in the user user url spot and a second time if the song is added by a collaborator. Then use the one that is valid if either.
+    # Move slightly to reach the 'Copy Link' option if it is the user user, move down farther
+    pyautogui.moveRel(30, 50)
+    time.sleep(1)  # Remove later
     pyautogui.click()
     time.sleep(0.2)
 
-    pyautogui.hotkey('ctrl', 'c')
-    time.sleep(0.2)
-
     text = pyperclip.paste()
-    print(f"Clipboard contents: {text}")
-    if "Added by" in text:
+    print(f"Clipboard URL: {text}")
+    if "open.spotify.com/user/" in text:
         try:
-            contributor = text.split("Added by")[-1].strip().split("\n")[0]
+            contributor = text.split("/user/")[-1].split("?")[0]
             print(f"Found contributor: {contributor}")
             return contributor
         except:
@@ -92,9 +106,11 @@ def get_logged_urls():
     return urls
 
 
-def scroll_down():
-    pyautogui.moveTo(1000, 800)
-    pyautogui.scroll(-500)
+def scroll_and_reset_to_anchor(anchor_x, anchor_y):
+    pyautogui.moveTo(anchor_x, anchor_y)
+    pyautogui.scroll(-1 * ROW_HEIGHT)
+    time.sleep(SCROLL_DELAY)
+    pyautogui.moveTo(anchor_x, anchor_y)
     time.sleep(0.5)
 
 
@@ -118,10 +134,6 @@ def main():
     tracks = get_all_tracks(PLAYLIST_ID)
 
     for idx, item in enumerate(tracks):
-        if idx > 0 and idx % 10 == 0:
-            print("🔻 Scrolling down")
-            scroll_down()
-
         track = item['track']
         url = track['external_urls']['spotify']
         if url in logged_urls:
@@ -131,7 +143,11 @@ def main():
         added_at = item['added_at']
         title = track['name']
         artist = ', '.join([a['name'] for a in track['artists']])
-        contributor = scrape_added_by(idx, anchor_x, anchor_y)
+        contributor = scrape_added_by(
+            0, anchor_x, anchor_y)  # Idx might not be needed
+        # Scroll after scraping the contributor
+        print("🔻 Scrolling down")
+        scroll_and_reset_to_anchor(anchor_x, anchor_y)
         log_time = datetime.datetime.now().isoformat()
 
         row = [title, artist, url, contributor, added_at, log_time, 'No']
