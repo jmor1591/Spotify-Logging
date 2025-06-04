@@ -1,5 +1,6 @@
 # file: spotify_to_gsheet.py
 
+from dotenv import load_dotenv
 import os
 import datetime
 import time
@@ -10,17 +11,18 @@ from spotipy.oauth2 import SpotifyOAuth
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
+# Load environment variables from .env file
+load_dotenv()
 # ========== CONFIGURATION ==========
-SPOTIFY_CLIENT_ID = 'your_spotify_client_id'
-SPOTIFY_CLIENT_SECRET = 'your_spotify_client_secret'
-SPOTIFY_REDIRECT_URI = 'http://localhost:8888/callback'
-PLAYLIST_ID = 'spotify:playlist:YOUR_PLAYLIST_ID'
+SPOTIFY_CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
+SPOTIFY_CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
+SPOTIFY_REDIRECT_URI = os.getenv('SPOTIFY_REDIRECT_URI')
+PLAYLIST_ID = os.getenv('PLAYLIST_ID')
+# Load SCOPE and split it into a list
+SCOPE = os.getenv('SCOPE').split(',')
+GOOGLE_SHEET_NAME = os.getenv('GOOGLE_SHEET_NAME')
 
-SCOPE = ['https://spreadsheets.google.com/feeds',
-         'https://www.googleapis.com/auth/drive']
-GOOGLE_SHEET_NAME = 'Spotify Playlist Log'
-
-CREDENTIALS_FILE = 'path/to/google-service-account.json'
+CREDENTIALS_FILE = 'creds.json'
 
 # ========== INIT CLIENTS ==========
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
@@ -34,7 +36,7 @@ credentials = ServiceAccountCredentials.from_json_keyfile_name(
 gs = gspread.authorize(credentials)
 ws = gs.open(GOOGLE_SHEET_NAME).sheet1
 
-# ========== HELPER FUNCTIONS ==========
+# ========== HELPERS ==========
 
 
 def get_all_tracks(playlist_id):
@@ -49,13 +51,11 @@ def get_all_tracks(playlist_id):
 
 
 def scrape_added_by(index):
-    # Scroll to specific row if needed (manually adjust coordinates)
-    y_start = 250 + index * 70  # tune based on resolution & row height
+    y_start = 250 + index * 70
     pyautogui.moveTo(300, y_start)
     pyautogui.click()
     time.sleep(0.2)
 
-    # Use right-click or shortcut to focus UI line
     pyautogui.hotkey('ctrl', 'c')
     time.sleep(0.2)
 
@@ -67,19 +67,27 @@ def scrape_added_by(index):
             return "UNKNOWN"
     return "UNKNOWN"
 
+
+def get_logged_urls():
+    rows = ws.get_all_records()
+    return set(row['Spotify URL'] for row in rows)
+
 # ========== MAIN ==========
 
 
 def main():
+    logged_urls = get_logged_urls()
     tracks = get_all_tracks(PLAYLIST_ID)
 
     for idx, item in enumerate(tracks):
         track = item['track']
+        url = track['external_urls']['spotify']
+        if url in logged_urls:
+            continue
+
         added_at = item['added_at']
         title = track['name']
         artist = ', '.join([a['name'] for a in track['artists']])
-        url = track['external_urls']['spotify']
-
         contributor = scrape_added_by(idx)
         log_time = datetime.datetime.now().isoformat()
 
