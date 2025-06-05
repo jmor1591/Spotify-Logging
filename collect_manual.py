@@ -10,7 +10,6 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import requests
 
 # Load environment variables from .env file
 load_dotenv()
@@ -149,6 +148,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    zapier_webhook_url = "https://hooks.zapier.com/hooks/catch/your-zap-id/your-trigger-id"
-    requests.post(zapier_webhook_url, json={
-                  "status": "spotify_to_gsheet_complete"})
