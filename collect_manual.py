@@ -135,12 +135,30 @@ def main():
         added_at = item['added_at']
         title = track['name']
         artist = '::'.join([a['name'] for a in track['artists']])
+        release_date = track['album']['release_date']
+        release_year = release_date.split('-')[0]  # Extract year
+
+        popularity = track.get('popularity', 0)
 
         # Fill the Added By column with "UNKNOWN"
         contributor = "UNKNOWN"  # Placeholder for Added By
         print(f"Logging track: {title} by {artist}, Added By: {contributor}")
         log_time = datetime.datetime.now().isoformat()
-        row = [title, artist, url, contributor, added_at, log_time, 'No']
+        row = [
+            title,
+            artist,
+            url,
+            contributor,
+            added_at,
+            log_time,
+            'No',             # Notified
+            '',               # Cumulative Track Count (Google Sheet)
+            '',               # Contributor Track Count (Google Sheet)
+            '',               # Proportion of Total (Google Sheet)
+            release_year,
+            popularity
+        ]
+
         print(f"Appending row: {row}")
         ws.append_row(row)
         # time.sleep(1)
